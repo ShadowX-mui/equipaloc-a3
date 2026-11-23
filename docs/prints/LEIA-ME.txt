@@ -1,0 +1,9 @@
+Salvar aqui os prints (Win+Shift+S), com estes nomes. O README aponta para eles.
+01_compose_healthy.png    docker compose up -d --wait com os dois bancos Healthy
+02_testes_80_passed.png   docker compose run --rm testes terminando em "80 passed"
+03_explain_postgres.png   plano antes e depois (saida do perf, PostgreSQL)
+04_explain_oracle.png     plano antes e depois (saida do perf, Oracle)
+05_app_python.png         saida do app-python
+06_app_java.png           saida do app-java
+07_der.png                DER gerado em plantuml.com a partir de der/equipaloc.puml
+08_demo_regra_negocio.png saida dos scripts tools/demo_postgresql.sql e demo_oracle.sql
