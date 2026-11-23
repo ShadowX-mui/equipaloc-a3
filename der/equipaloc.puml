@@ -1,0 +1,93 @@
+@startuml equipaloc
+' DER EquipaLoc - notacao Crow's Foot (pe de galinha). Cardinalidades (min,max) nos comentarios.
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+
+entity "perfil_cliente" as perfil_cliente {
+  * perfil_id : INTEGER <<PK>>
+  --
+  * nome : VARCHAR(20) <<UK>>
+  * max_itens_abertos : INTEGER
+}
+
+entity "cliente" as cliente {
+  * cliente_id : INTEGER <<PK>>
+  --
+  * perfil_id : INTEGER <<FK>>
+  * nome : VARCHAR(60)
+  * email : VARCHAR(80) <<UK>>
+  * data_cadastro : DATE
+}
+
+entity "categoria" as categoria {
+  * categoria_id : INTEGER <<PK>>
+  --
+  * nome : VARCHAR(40) <<UK>>
+}
+
+entity "equipamento" as equipamento {
+  * equipamento_id : INTEGER <<PK>>
+  --
+  * categoria_id : INTEGER <<FK>>
+  * codigo : VARCHAR(20) <<UK>>
+  * descricao : VARCHAR(80)
+  * valor_diaria : NUMERIC(10,2)
+  * valor_reposicao : NUMERIC(10,2)
+  * status : DISPONIVEL | ALUGADO | MANUTENCAO
+}
+
+entity "locacao" as locacao {
+  * locacao_id : INTEGER <<PK>>
+  --
+  * cliente_id : INTEGER <<FK>>
+  * data_saida : DATE
+  * data_prevista : DATE
+  data_devolucao : DATE
+  * status : ABERTA | DEVOLVIDA
+}
+
+entity "item_locacao" as item_locacao {
+  * item_id : INTEGER <<PK>>
+  --
+  * locacao_id : INTEGER <<FK, UK1>>
+  * equipamento_id : INTEGER <<FK, UK1>>
+  * valor_diaria_cobrada : NUMERIC(10,2)
+  * avaria : S | N
+}
+
+entity "multa" as multa {
+  * multa_id : INTEGER <<PK>>
+  --
+  * locacao_id : INTEGER <<FK, UK1>>
+  * tipo : ATRASO | AVARIA <<UK1>>
+  * valor : NUMERIC(10,2)
+  * status : ABERTA | PAGA
+  * data_geracao : DATE
+}
+
+entity "auditoria_locacao" as auditoria_locacao {
+  * auditoria_id : INTEGER <<PK>>
+  --
+  * locacao_id : INTEGER
+  * operacao : VARCHAR(10)
+  status_anterior : VARCHAR(10)
+  status_novo : VARCHAR(10)
+  * usuario : VARCHAR(40)
+  * data_evento : TIMESTAMP
+}
+
+' (min,max) lado esquerdo -- (min,max) lado direito
+perfil_cliente ||--o{ cliente      : "classifica\n(1,1) -- (0,N)"
+cliente        ||--o{ locacao      : "realiza\n(1,1) -- (0,N)"
+categoria      ||--o{ equipamento  : "agrupa\n(1,1) -- (0,N)"
+locacao        ||--|{ item_locacao : "contem\n(1,1) -- (1,N)"
+equipamento    ||--o{ item_locacao : "e alugado em\n(1,1) -- (0,N)"
+locacao        ||--o{ multa        : "gera\n(1,1) -- (0,N)"
+locacao        ||..o{ auditoria_locacao : "e auditada\n(sem FK)\n(1,1) -- (0,N)"
+
+note bottom of item_locacao
+  Entidade associativa do N:M locacao x equipamento.
+  Carrega atributos proprios (valor cobrado e avaria).
+end note
+@enduml
