@@ -1,0 +1,163 @@
+# EquipaLoc - A3 Banco de Dados
+# SGBD escolhido: PostgreSQL 17 | Linguagem da aplicacao: Python.
+# Oracle XE 21 e Java sao EXTRAS OPCIONAIS (profile "oracle"): nao sobem no caminho principal.
+# ATENCAO: todas as senhas abaixo sao SOMENTE de laboratorio (nao sao segredos reais).
+#
+# --- Caminho principal (PostgreSQL + Python) ---
+#   docker compose up -d --wait                       # PostgreSQL pronto (esquema, dados, procedures, indices)
+#   docker compose run --rm testes                    # testes automatizados no PostgreSQL
+#   docker compose run --rm perf                      # EXPLAIN antes/depois (grava performance/explain_antes_depois.txt)
+#   docker compose --profile apps run --rm app-python # aplicacao Python
+#   docker compose down -v                            # derruba e apaga tudo
+#
+# --- Extras opcionais (Oracle e Java) ---
+#   docker compose --profile oracle up -d --wait                       # PostgreSQL + Oracle
+#   docker compose --profile oracle run --rm testes-oracle             # testes nos DOIS bancos
+#   docker compose --profile oracle run --rm perf-oracle               # EXPLAIN nos dois bancos
+#   docker compose --profile oracle run --rm app-python-oracle         # app Python nos dois bancos
+#   docker compose --profile oracle run --rm app-java                  # app Java (JDBC) nos dois bancos
+#   docker compose --profile oracle down -v                            # remove TAMBEM o Oracle (o 'down -v' simples nao remove)
+name: equipaloc
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: a3
+      POSTGRES_PASSWORD: a3lab        # senha de laboratorio
+      POSTGRES_DB: a3
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgresql:/sql/postgresql:ro
+      - ./procedures:/sql/procedures:ro
+      - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/10_init.sh:ro
+    healthcheck:
+      # -h 127.0.0.1 forca TCP: o servidor temporario da carga inicial so escuta no socket local,
+      # entao o healthcheck so passa DEPOIS que os scripts terminaram.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U a3 -d a3"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # ---------------------------------------------------------------- EXTRA OPCIONAL
+  oracle:
+    profiles: ["oracle"]
+    image: gvenzl/oracle-xe:21-slim
+    environment:
+      ORACLE_PASSWORD: oraclelab       # senha do SYS (laboratorio)
+      APP_USER: a3
+      APP_USER_PASSWORD: a3lab         # senha de laboratorio
+    ports:
+      - "1521:1521"
+    volumes:
+      - ./oracle:/sql/oracle:ro
+      - ./procedures:/sql/procedures:ro
+      - ./docker/oracle/init.sh:/container-entrypoint-initdb.d/10_init.sh:ro
+    healthcheck:
+      # saudavel somente quando o init.sh terminou sem erro (cria o arquivo marcador no fim)
+      test: ["CMD-SHELL", "test -f /tmp/a3_init_ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
+  # ---------------------------------------------------------------- CAMINHO PRINCIPAL (so PostgreSQL)
+  testes:
+    profiles: ["tools"]
+    build: ./docker/python
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PG_HOST: postgres
+      A3_DBS: postgres
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./postgresql:/app/sql/postgresql:ro
+      - ./oracle:/app/sql/oracle:ro
+    working_dir: /app
+    command: ["pytest", "-v", "-p", "no:cacheprovider", "/app/tests"]
+
+  perf:
+    profiles: ["tools"]
+    build: ./docker/python
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PG_HOST: postgres
+      A3_DBS: postgres
+    volumes:
+      - ./performance:/app/performance
+    working_dir: /app
+    command: ["python", "/app/performance/perf.py"]
+
+  app-python:
+    profiles: ["apps"]
+    build: ./docker/python
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PG_HOST: postgres
+      A3_DBS: postgres
+    volumes:
+      - ./python:/app/python:ro
+    working_dir: /app
+    command: ["python", "/app/python/app.py"]
+
+  # ---------------------------------------------------------------- EXTRAS (precisam do profile oracle)
+  testes-oracle:
+    profiles: ["extras"]
+    build: ./docker/python
+    depends_on:
+      postgres: { condition: service_healthy }
+      oracle:   { condition: service_healthy }
+    environment:
+      PG_HOST: postgres
+      ORA_HOST: oracle
+      A3_DBS: postgres,oracle
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./postgresql:/app/sql/postgresql:ro
+      - ./oracle:/app/sql/oracle:ro
+    working_dir: /app
+    command: ["pytest", "-v", "-p", "no:cacheprovider", "/app/tests"]
+
+  perf-oracle:
+    profiles: ["extras"]
+    build: ./docker/python
+    depends_on:
+      postgres: { condition: service_healthy }
+      oracle:   { condition: service_healthy }
+    environment:
+      PG_HOST: postgres
+      ORA_HOST: oracle
+      A3_DBS: postgres,oracle
+    volumes:
+      - ./performance:/app/performance
+    working_dir: /app
+    command: ["python", "/app/performance/perf.py"]
+
+  app-python-oracle:
+    profiles: ["extras"]
+    build: ./docker/python
+    depends_on:
+      postgres: { condition: service_healthy }
+      oracle:   { condition: service_healthy }
+    environment:
+      PG_HOST: postgres
+      ORA_HOST: oracle
+      A3_DBS: postgres,oracle
+    volumes:
+      - ./python:/app/python:ro
+    working_dir: /app
+    command: ["python", "/app/python/app.py"]
+
+  app-java:
+    profiles: ["extras"]
+    build: ./java
+    depends_on:
+      postgres: { condition: service_healthy }
+      oracle:   { condition: service_healthy }
+    environment:
+      PG_HOST: postgres
+      ORA_HOST: oracle
