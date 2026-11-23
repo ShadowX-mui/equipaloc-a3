@@ -1,0 +1,239 @@
+Gerado por performance/perf.py em 2026-11-06 23:16:10 (tempos reais desta maquina)
+==============================================================================
+PostgreSQL 17   (massa: 200000 locacoes, 300000 itens)
+==============================================================================
+
+######## ANTES dos indices ########
+
+--- Q-A  FK locacao.cliente_id  (historico de um cliente)
+SELECT COUNT(*), MAX(data_saida) FROM perf.locacao WHERE cliente_id = 4242
+Aggregate  (cost=3971.05..3971.06 rows=1 width=12) (actual time=12.464..12.465 rows=1 loops=1)
+  Buffers: shared hit=1471
+  ->  Seq Scan on locacao  (cost=0.00..3971.00 rows=10 width=4) (actual time=1.026..12.455 rows=10 loops=1)
+        Filter: (cliente_id = 4242)
+        Rows Removed by Filter: 199990
+        Buffers: shared hit=1471
+Planning:
+  Buffers: shared hit=31
+Planning Time: 0.156 ms
+Execution Time: 12.494 ms
+Tempo medido (10 execucoes): media 14.059 ms | minimo 12.917 ms
+
+--- Q-B  FK item_locacao.equipamento_id  (locacoes de um equipamento)
+SELECT COUNT(*) FROM perf.item_locacao WHERE equipamento_id = 42
+Finalize Aggregate  (cost=4828.87..4828.88 rows=1 width=8) (actual time=14.845..17.303 rows=1 loops=1)
+  Buffers: shared hit=1622
+  ->  Gather  (cost=4828.76..4828.87 rows=1 width=8) (actual time=14.648..17.296 rows=2 loops=1)
+        Workers Planned: 1
+        Workers Launched: 1
+        Buffers: shared hit=1622
+        ->  Partial Aggregate  (cost=3828.76..3828.77 rows=1 width=8) (actual time=11.994..11.995 rows=1 loops=2)
+              Buffers: shared hit=1622
+              ->  Parallel Seq Scan on item_locacao  (cost=0.00..3827.88 rows=351 width=0) (actual time=0.017..11.950 rows=300 loops=2)
+                    Filter: (equipamento_id = 42)
+                    Rows Removed by Filter: 149700
+                    Buffers: shared hit=1622
+Planning:
+  Buffers: shared hit=14
+Planning Time: 0.140 ms
+Execution Time: 17.331 ms
+Tempo medido (10 execucoes): media 17.358 ms | minimo 15.411 ms
+
+--- Q-C  busca: locacoes abertas ha muito tempo (status + data_prevista)
+SELECT COUNT(*) FROM perf.locacao WHERE status = 'ABERTA' AND data_prevista < CURRENT_DATE - 300
+Finalize Aggregate  (cost=4824.96..4824.97 rows=1 width=8) (actual time=11.418..13.611 rows=1 loops=1)
+  Buffers: shared hit=1471
+  ->  Gather  (cost=4824.84..4824.95 rows=1 width=8) (actual time=11.297..13.606 rows=2 loops=1)
+        Workers Planned: 1
+        Workers Launched: 1
+        Buffers: shared hit=1471
+        ->  Partial Aggregate  (cost=3824.84..3824.85 rows=1 width=8) (actual time=9.451..9.451 rows=1 loops=2)
+              Buffers: shared hit=1471
+              ->  Parallel Seq Scan on locacao  (cost=0.00..3823.94 rows=361 width=0) (actual time=0.035..9.415 rows=302 loops=2)
+                    Filter: (((status)::text = 'ABERTA'::text) AND (data_prevista < (CURRENT_DATE - 300)))
+                    Rows Removed by Filter: 99698
+                    Buffers: shared hit=1471
+Planning:
+  Buffers: shared hit=14
+Planning Time: 0.123 ms
+Execution Time: 13.633 ms
+Tempo medido (10 execucoes): media 16.304 ms | minimo 13.934 ms
+
+######## DEPOIS dos indices ########
+
+--- Q-A  FK locacao.cliente_id  (historico de um cliente)   [indice: idx_locacao_cliente]
+SELECT COUNT(*), MAX(data_saida) FROM perf.locacao WHERE cliente_id = 4242
+Aggregate  (cost=42.07..42.08 rows=1 width=12) (actual time=0.063..0.064 rows=1 loops=1)
+  Buffers: shared hit=10 read=2
+  ->  Bitmap Heap Scan on locacao  (cost=4.37..42.02 rows=10 width=4) (actual time=0.044..0.057 rows=10 loops=1)
+        Recheck Cond: (cliente_id = 4242)
+        Heap Blocks: exact=10
+        Buffers: shared hit=10 read=2
+        ->  Bitmap Index Scan on idx_locacao_cliente  (cost=0.00..4.37 rows=10 width=0) (actual time=0.035..0.035 rows=10 loops=1)
+              Index Cond: (cliente_id = 4242)
+              Buffers: shared read=2
+Planning:
+  Buffers: shared hit=12 read=2
+Planning Time: 0.211 ms
+Execution Time: 0.087 ms
+Tempo medido (10 execucoes): media 0.232 ms | minimo 0.201 ms
+
+--- Q-B  FK item_locacao.equipamento_id  (locacoes de um equipamento)   [indice: idx_item_equipamento]
+SELECT COUNT(*) FROM perf.item_locacao WHERE equipamento_id = 42
+Aggregate  (cost=1191.15..1191.16 rows=1 width=8) (actual time=0.743..0.743 rows=1 loops=1)
+  Buffers: shared hit=600 read=4
+  ->  Bitmap Heap Scan on item_locacao  (cost=9.04..1189.66 rows=596 width=0) (actual time=0.140..0.711 rows=600 loops=1)
+        Recheck Cond: (equipamento_id = 42)
+        Heap Blocks: exact=600
+        Buffers: shared hit=600 read=4
+        ->  Bitmap Index Scan on idx_item_equipamento  (cost=0.00..8.89 rows=596 width=0) (actual time=0.083..0.083 rows=600 loops=1)
+              Index Cond: (equipamento_id = 42)
+              Buffers: shared read=4
+Planning:
+  Buffers: shared hit=5 read=1
+Planning Time: 0.078 ms
+Execution Time: 0.754 ms
+Tempo medido (10 execucoes): media 0.629 ms | minimo 0.547 ms
+
+--- Q-C  busca: locacoes abertas ha muito tempo (status + data_prevista)   [indice: idx_locacao_status_prevista]
+SELECT COUNT(*) FROM perf.locacao WHERE status = 'ABERTA' AND data_prevista < CURRENT_DATE - 300
+Aggregate  (cost=1020.12..1020.13 rows=1 width=8) (actual time=0.560..0.561 rows=1 loops=1)
+  Buffers: shared hit=603 read=2
+  ->  Index Only Scan using idx_locacao_status_prevista on locacao  (cost=0.30..1018.56 rows=627 width=0) (actual time=0.070..0.526 rows=603 loops=1)
+        Index Cond: ((status = 'ABERTA'::text) AND (data_prevista < (CURRENT_DATE - 300)))
+        Heap Fetches: 603
+        Buffers: shared hit=603 read=2
+Planning:
+  Buffers: shared hit=8
+Planning Time: 0.101 ms
+Execution Time: 0.573 ms
+Tempo medido (10 execucoes): media 0.435 ms | minimo 0.391 ms
+
+==============================================================================
+Oracle XE 21   (massa: 200000 locacoes, 300000 itens)
+==============================================================================
+
+######## ANTES dos indices ########
+
+--- Q-A  FK locacao.cliente_id  (historico de um cliente)
+SELECT COUNT(*), MAX(data_saida) FROM locacao WHERE cliente_id = 4242
+Plan hash value: 3691808616
+ 
+------------------------------------------------------------------------------
+| Id  | Operation          | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |         |     1 |    13 |   308   (1)| 00:00:01 |
+|   1 |  SORT AGGREGATE    |         |     1 |    13 |            |          |
+|*  2 |   TABLE ACCESS FULL| LOCACAO |    10 |   130 |   308   (1)| 00:00:01 |
+------------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   2 - filter("CLIENTE_ID"=4242)
+Tempo medido (10 execucoes): media 4.548 ms | minimo 4.178 ms
+
+--- Q-B  FK item_locacao.equipamento_id  (locacoes de um equipamento)
+SELECT COUNT(*) FROM item_locacao WHERE equipamento_id = 42
+Plan hash value: 3654766697
+ 
+-----------------------------------------------------------------------------------
+| Id  | Operation          | Name         | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |              |     1 |     4 |   240   (1)| 00:00:01 |
+|   1 |  SORT AGGREGATE    |              |     1 |     4 |            |          |
+|*  2 |   TABLE ACCESS FULL| ITEM_LOCACAO |   600 |  2400 |   240   (1)| 00:00:01 |
+-----------------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   2 - filter("EQUIPAMENTO_ID"=42)
+Tempo medido (10 execucoes): media 5.661 ms | minimo 5.171 ms
+
+--- Q-C  busca: locacoes abertas ha muito tempo (status + data_prevista)
+SELECT COUNT(*) FROM locacao WHERE status = 'ABERTA' AND data_prevista < TRUNC(SYSDATE) - 300
+Plan hash value: 3691808616
+ 
+------------------------------------------------------------------------------
+| Id  | Operation          | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |         |     1 |    18 |   311   (2)| 00:00:01 |
+|   1 |  SORT AGGREGATE    |         |     1 |    18 |            |          |
+|*  2 |   TABLE ACCESS FULL| LOCACAO | 16209 |   284K|   311   (2)| 00:00:01 |
+------------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   2 - filter("STATUS"='ABERTA' AND 
+              "DATA_PREVISTA"<TRUNC(SYSDATE@!)-300)
+Tempo medido (10 execucoes): media 5.756 ms | minimo 5.101 ms
+
+######## DEPOIS dos indices ########
+
+--- Q-A  FK locacao.cliente_id  (historico de um cliente)   [indice: idx_locacao_cliente]
+SELECT COUNT(*), MAX(data_saida) FROM locacao WHERE cliente_id = 4242
+Plan hash value: 3210519444
+ 
+------------------------------------------------------------------------------------------------------------
+| Id  | Operation                            | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                     |                     |     1 |    13 |    11   (0)| 00:00:01 |
+|   1 |  SORT AGGREGATE                      |                     |     1 |    13 |            |          |
+|   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| LOCACAO             |    10 |   130 |    11   (0)| 00:00:01 |
+|*  3 |    INDEX RANGE SCAN                  | IDX_LOCACAO_CLIENTE |    10 |       |     1   (0)| 00:00:01 |
+------------------------------------------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   3 - access("CLIENTE_ID"=4242)
+Tempo medido (10 execucoes): media 0.404 ms | minimo 0.207 ms
+
+--- Q-B  FK item_locacao.equipamento_id  (locacoes de um equipamento)   [indice: idx_item_equipamento]
+SELECT COUNT(*) FROM item_locacao WHERE equipamento_id = 42
+Plan hash value: 1282433226
+ 
+------------------------------------------------------------------------------------------
+| Id  | Operation         | Name                 | Rows  | Bytes | Cost (%CPU)| Time     |
+------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |                      |     1 |     4 |     4   (0)| 00:00:01 |
+|   1 |  SORT AGGREGATE   |                      |     1 |     4 |            |          |
+|*  2 |   INDEX RANGE SCAN| IDX_ITEM_EQUIPAMENTO |   599 |  2396 |     4   (0)| 00:00:01 |
+------------------------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   2 - access("EQUIPAMENTO_ID"=42)
+Tempo medido (10 execucoes): media 0.391 ms | minimo 0.213 ms
+
+--- Q-C  busca: locacoes abertas ha muito tempo (status + data_prevista)   [indice: idx_locacao_status_prevista]
+SELECT COUNT(*) FROM locacao WHERE status = 'ABERTA' AND data_prevista < TRUNC(SYSDATE) - 300
+Plan hash value: 758632201
+ 
+-------------------------------------------------------------------------------------------------
+| Id  | Operation         | Name                        | Rows  | Bytes | Cost (%CPU)| Time     |
+-------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |                             |     1 |    18 |     5   (0)| 00:00:01 |
+|   1 |  SORT AGGREGATE   |                             |     1 |    18 |            |          |
+|*  2 |   INDEX RANGE SCAN| IDX_LOCACAO_STATUS_PREVISTA |   648 | 11664 |     5   (0)| 00:00:01 |
+-------------------------------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   2 - access("STATUS"='ABERTA' AND "DATA_PREVISTA"<TRUNC(SYSDATE@!)-300)
+Tempo medido (10 execucoes): media 0.550 ms | minimo 0.239 ms
+
+==============================================================================
+RESUMO (media em ms; quanto menor, melhor)
+==============================================================================
+Banco           Consulta    Antes (ms)   Depois (ms)     Ganho
+PostgreSQL 17   Q-A             14.059         0.232     60.6x
+PostgreSQL 17   Q-B             17.358         0.629     27.6x
+PostgreSQL 17   Q-C             16.304         0.435     37.5x
+Oracle XE 21    Q-A              4.548         0.404     11.3x
+Oracle XE 21    Q-B              5.661         0.391     14.5x
+Oracle XE 21    Q-C              5.756         0.550     10.5x
