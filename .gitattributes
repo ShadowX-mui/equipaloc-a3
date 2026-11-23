@@ -1,0 +1,6 @@
+# Scripts executados dentro dos containers Linux precisam de fim de linha LF (mesmo no Windows)
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.yml  text eol=lf
+*.py   text eol=lf
+*.java text eol=lf

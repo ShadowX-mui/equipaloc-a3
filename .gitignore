@@ -1,0 +1,13 @@
+# segredos reais nunca entram no repositorio (as senhas do compose sao de laboratorio)
+.env
+*.key
+# python / java / ide
+__pycache__/
+*.pyc
+.pytest_cache/
+java/out/
+java/lib/
+target/
+.idea/
+.vscode/
+*.log
