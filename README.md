@@ -6,8 +6,8 @@
 |---|---|
 | **Autor (nome e RA)** | Peterson Luis Taborda Garcia, RA 12926114442 |
 | **Disciplina / turma** | Banco de Dados, Ciência da Computação (UniRitter) |
-| **Repositório** | ⚠️ PREENCHER (link) |
-| **Tag da entrega / hash do commit** | ⚠️ PREENCHER (`v1.0.0` / hash) |
+| **Repositório** | https://github.com/ShadowX-mui/equipaloc-a3 |
+| **Tag da entrega / hash do commit** | `v1.0.0` (o hash do commit está na capa da entrega) |
 
 ## Escolhas do enunciado atualizado
 
@@ -44,7 +44,11 @@ Erros de negócio têm código estável: `EQL-001` (prazo) · `002` (cliente ine
 
 ## 2. DER
 
-Fonte versionada em [`der/equipaloc.puml`](der/equipaloc.puml) (PlantUML, notação Crow's Foot). Para gerar a imagem: colar o arquivo em <https://www.plantuml.com/plantuml> e salvar como `der/equipaloc.png`.
+Fonte versionada em [`der/equipaloc.puml`](der/equipaloc.puml) (PlantUML, notação Crow's Foot).
+
+![DER do EquipaLoc](docs/prints/07_der.png)
+
+Versão simplificada, só com as chaves (o GitHub desenha sozinho):
 
 ```mermaid
 erDiagram

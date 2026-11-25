@@ -9,7 +9,7 @@
 4. `docker compose run --rm testes` (todos devem passar).
 5. `docker compose run --rm perf` (gera `performance/explain_antes_depois.txt`).
 6. `docker compose --profile apps run --rm app-python`.
-   Extras opcionais: `docker compose --profile oracle up -d --wait`, depois `docker compose --profile oracle run --rm testes-oracle` (80 testes nos dois bancos) e `docker compose --profile oracle run --rm app-java`.
+   Extras opcionais: `docker compose --profile oracle up -d --wait`, depois `docker compose --profile oracle run --rm testes-oracle` (84 testes nos dois bancos) e `docker compose --profile oracle run --rm app-java`.
 7. Teste final do zero: `docker compose down -v` e repita 2 e 4. Para recriar também o Oracle: `docker compose --profile oracle down -v`.
    **Na véspera e no dia da apresentação, recrie tudo do zero:** os dados de exemplo têm datas relativas ao dia em que o banco foi criado, e um container antigo faz testes de data falharem.
 
@@ -85,9 +85,9 @@ Conferir antes de postar: zip descompactado em **outra pasta**, `docker compose 
 |---|---|---|
 | O problema e o DER | 2 min | Domínio, regras com número, DER e **uma** decisão de modelagem justificada |
 | Do zero ao banco pronto | 2 min | `docker compose up -d --wait` e `run --rm testes` no PostgreSQL |
-| Uma regra de negócio ao vivo | 3 min | `tools/demo_postgresql.sql`: caminho feliz, erro e o que o trigger registrou (o `demo_oracle.sql` é do extra opcional) |
+| Uma regra de negócio ao vivo | 3 min | `tools/demo_postgresql.sql`: caminho feliz, erro e o que o trigger registrou; depois a mesma regra **pela aplicação** (`docker compose --profile apps run --rm app-python`). O `demo_oracle.sql` é do extra opcional |
 | Índice e plano | 1 min | Plano antes e depois, com o tempo |
-| Lições e IA | 2 min | O que o agente errou, o que eu corrigi, maior diferença PostgreSQL × Oracle (do extra) |
+| Lições e IA | 2 min | O que o agente errou, o que eu corrigi e **por que escolhi PostgreSQL e Python** (sobe em segundos, usa pouca memória; Python tem driver psycopg, bind, `CALL` de procedure, transação e roda pelo compose) |
 | Pergunta do professor | — | Explicar um trecho escolhido |
 
 **Preparação:** bancos já iniciados (o Oracle demora), comandos já ensaiados, portas 5432 e 1521 livres e **uma gravação de tela de reserva** (Win+G abre a barra de jogos do Windows, que grava). Rodem os dois `demo_*.sql` antes: eles **não foram executados pelo agente**.
@@ -101,3 +101,12 @@ Get-Content tools\demo_oracle.sql | docker compose exec -T oracle sqlplus -s a3/
 `psql` e `sqlplus` já vêm dentro dos containers (comandos acima), então não precisa instalar nada.
 Para **ver as tabelas e tirar prints**, o enunciado recomenda o **DBeaver** (um só programa para os dois bancos). O programa do elefante é o pgAdmin, que serve só para PostgreSQL.
 Conexões: PostgreSQL `localhost:5432`, banco `a3`, usuário `a3`, senha `a3lab`. Oracle `localhost:1521`, serviço `XEPDB1`, usuário `a3`, senha `a3lab`.
+
+## 8. Pontos do enunciado atualizado (24/11)
+
+- **O que estiver no repositório também é avaliado**, inclusive na pergunta do professor. Isso vale para o Oracle e o Java extras: se ficarem, é preciso saber explicar também esses arquivos.
+- **Commits ao longo das semanas**, em Conventional Commits. Faça commits pequenos e reais nos próximos dias (prints, mutação, README), sem alterar datas.
+- **Informar o SGBD e a linguagem ao professor** (PostgreSQL e Python). Se o e-mail com essa informação ainda não foi enviado, envie.
+- **A imagem do DER precisa estar no README** (já está na seção 2).
+- **Demonstração ao vivo "também pela aplicação":** rodar a regra pelo `app-python`, além do SQL.
+- **Cópia limpa:** `docker compose down -v` antes de testar o zip descompactado em outra pasta.
