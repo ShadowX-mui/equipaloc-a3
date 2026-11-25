@@ -34,6 +34,22 @@ def test_q02_fronteira_vence_hoje(db, consultas):
     assert situacoes[(9, "ESC-001")] == "NO PRAZO"
 
 
+def test_q05_receita_acumulada_em_ordem_cronologica(db, consultas):
+    # (locacao, valor contratado, acumulado). Todas as locacoes tem 5 dias; ex.: L3 = (50+30) x 5 = 400; 425 + 400 = 825
+    esperado = [(1, 125, 125), (2, 300, 425), (3, 400, 825), (4, 500, 1325), (5, 200, 1525), (6, 450, 1975),
+                (7, 200, 2175), (8, 625, 2800), (10, 300, 3100), (11, 250, 3350), (9, 100, 3450),
+                (12, 300, 3750), (13, 225, 3975)]
+    assert rodar(db, consultas, "Q05") == [tuple(dec(c) for c in linha) for linha in esperado]
+
+
+def test_q06_ultimo_equipamento_alugado_por_cliente(db, consultas):
+    # Hugo nunca alugou (fica de fora); Bruno e Elisa alugaram 2 itens na ultima locacao: vale o de maior item_id
+    assert rodar(db, consultas, "Q06") == [
+        ("Ana Teste", "ESC-001"), ("Bruno Exemplo", "SER-001"), ("Carla Modelo", "BET-001"),
+        ("Diego Ficticio", "ROC-001"), ("Elisa Demo", "COR-001"), ("Fabio Amostra", "AND-001"),
+        ("Gabi Simulada", "LAV-001")]
+
+
 def test_q07_anti_join_equipamento_nunca_alugado(db, consultas):
     assert rodar(db, consultas, "Q07") == [("COMP-001",)]
 
