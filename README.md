@@ -165,7 +165,7 @@ Para provar que os testes realmente protegem as regras, eu quebro uma regra, rec
 
 | Mutação (o que foi quebrado) | Teste que falhou | Resultado |
 |---|---|---|
-| ⚠️ PREENCHER (ex.: trocar `>=` por `>` no limite do perfil em `sp_registrar_locacao`) | ⚠️ PREENCHER | ⚠️ PREENCHER |
+| Troquei `>=` por `>` na verificação do limite de itens em `sp_registrar_locacao` (linha 106) | `test_registrar_limite_do_perfil_3_ok_4_erro` | Falhou (`1 failed, 36 passed`): esperava `EQL-004`, mas o 4º item foi aceito. Desfeita a mudança com `git checkout`, os testes voltam a **37 passed**. Print: ![mutação](docs/prints/13_mutacao_teste_falhando.png) |
 
 ## 5. Performance (índices e EXPLAIN)
 
@@ -291,7 +291,7 @@ Tempo medido (10 execucoes): media 0.404 ms | minimo 0.207 ms
 | Trigger consultando a própria tabela | permitido | `ORA-04091` (tabela mutante): por isso o trigger consulta `equipamento`, não `item_locacao` |
 | Erro dentro da transação | aborta a transação (usar `SAVEPOINT`) | não aborta |
 
-**Reflexão:** ⚠️ PREENCHER (o que foi mais difícil, o que aprendi, o que faria diferente).
+**Reflexão:** O mais difícil para mim foi criar os arquivos e a estrutura dentro da pasta do projeto: sem a IA eu não saberia por onde nem como começar. O que aprendi de mais importante foi que, para rodar qualquer comando que envolva o Docker, o Docker Desktop precisa estar ligado antes de tudo. Se eu fosse começar de novo, não mudaria nada: as ferramentas e a linguagem que escolhi (PostgreSQL e Python) foram mais do que suficientes para o que o trabalho pedia.
 
 ## 7. Estrutura de diretórios
 
@@ -341,4 +341,4 @@ equipaloc/
 
 > Regra do registro: **pelo menos 2 linhas** precisam trazer um **erro real** que apareceu ao executar e foi corrigido (a coluna "o que o agente errou"). Anotar na hora, com a mensagem de erro copiada.
 
-**Reflexão:** ⚠️ PREENCHER (onde a IA mais ajudou, onde mais errou, o que eu faria diferente).
+**Reflexão:** A IA mais ajudou nas partes em que eu tinha dúvida ou não sabia por onde seguir. Com ela, passei a lembrar como se executa cada teste e aprendi até a criar o repositório e os commits pelo terminal. Ela errou em alguns pontos, que estão no registro acima (o `DROP` no script de performance, o Java em um arquivo só, a normalização que faltou, o prefixo duplicado do erro do Oracle no Python e o aviso que faltou sobre o `down -v` do Oracle), mas nada difícil de resolver depois de executar e ler a mensagem de erro. O que eu conferi por conta própria foi a execução dos testes, para ver se estava tudo em ordem, e a quebra proposital de uma regra (a mutação), em que o teste falhou como esperado. Mesmo com a ajuda da IA, foi importante executar e testar cada etapa para encontrar esses erros.
