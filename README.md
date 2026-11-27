@@ -148,14 +148,15 @@ Se um script falhar na carga, a subida **aborta** (`ON_ERROR_STOP`, `WHENEVER SQ
 | O que mostra | Print |
 |---|---|
 | Bancos *healthy* em `docker compose up -d --wait` | ![compose](docs/prints/01_compose_healthy.png) |
-| Testes automatizados passando em `docker compose run --rm testes` | ![testes](docs/prints/02_testes_80_passed.png) |
+| Testes do caminho principal: `37 passed, 10 deselected` | ![testes](docs/prints/14_testes_37_passed.png) |
+| Extra com Oracle: testes nos dois bancos (`80 passed`, antes dos testes Q05 e Q06) | ![testes oracle](docs/prints/02_testes_80_passed.png) |
 | Plano antes e depois, PostgreSQL | ![explain pg](docs/prints/03_explain_postgres.png) |
 | Plano antes e depois, Oracle | ![explain oracle](docs/prints/04_explain_oracle.png) |
 | Aplicação Python (bind, procedure, erro de negócio, rollback) | ![python](docs/prints/05_app_python.png) |
 | Aplicação Java (JDBC) | ![java](docs/prints/06_app_java.png) |
 | DER gerado a partir do `.puml` | ![der](docs/prints/07_der.png) |
 | Regra de negócio ao vivo e registro do trigger (`tools/demo_*.sql`) | ![demo](docs/prints/08_demo_regra_negocio.png) |
-| Caminho principal: `down -v`, `up`, `testes` (**35 passed**) e início do app Python, só PostgreSQL | ![postgres](docs/prints/10_postgres_up_e_testes.png) |
+| Caminho principal só com PostgreSQL: `down -v`, `up`, `testes` (35 testes na época, hoje 37) e início do app Python | ![postgres](docs/prints/10_postgres_up_e_testes.png) |
 | App Python no PostgreSQL | ![app python pg](docs/prints/11_app_python_postgres.png) |
 | Extra Oracle com container antigo: 4 testes de data falhando (erro registrado na linha 10) | ![falhas](docs/prints/12_oracle_falhas_container_antigo.png) |
 
@@ -277,7 +278,7 @@ Tempo medido (10 execucoes): media 0.404 ms | minimo 0.207 ms
 
 ## 6. Dificuldades e aprendizados
 
-**Diferenças PostgreSQL × Oracle tratadas neste projeto** (o Oracle é o extra opcional) (todas visíveis nos scripts):
+**Diferenças PostgreSQL × Oracle tratadas neste projeto** (o Oracle é o extra opcional; todas visíveis nos scripts):
 
 | Ponto | PostgreSQL | Oracle |
 |---|---|---|
@@ -329,16 +330,14 @@ equipaloc/
 | # | Artefato | Pedido (resumo) | O que o agente errou ou omitiu | O que eu fiz |
 |---|---|---|---|---|
 | 1 | Tema e regras de negócio | Propor temas válidos e 6 regras com números | Nenhum erro identificado | Escolhi o tema EquipaLoc entre as opções propostas; **tema aprovado pelo professor por e-mail** |
-| 2 | DER | Entidades, cardinalidades (mín., máx.) e N:M | Nenhum erro identificado | Revisou o DER contra o checklist do enunciado |
-| 3 | DDL (Oracle e PostgreSQL) | Constraints nomeadas, `ON DELETE`, tipos de cada dialeto | Nenhum erro na execução: subiu nos dois bancos na primeira vez | Executou `docker compose up -d --wait` e conferiu que os dois bancos ficaram *healthy* |
-| 4 | Consultas | 10 consultas (JOIN, window, agregação, anti-join, ROLLUP, divisão relacional) | Nenhum erro na execução: resultado idêntico nos dois bancos | Executou os testes (`80 passed`) |
-| 5 | Procedures e triggers | RN-01 a RN-06, erro de negócio, sem COMMIT, concorrência | Nenhum erro na execução: 9 erros de negócio, valores-limite e concorrência passaram nos dois bancos | Executou os testes e conferiu os códigos `EQL-001` a `EQL-009` |
-| 6 | Índices e EXPLAIN | 3 índices e script de medição | **O script `perf.py` usava `DROP SCHEMA` e `DROP TABLE`**, o que a regra 3 do enunciado proíbe por sugestão do agente | Perguntei se o roteiro do enunciado tinha sido seguido; o agente identificou o `DROP`, removeu e passou a abortar com instrução de `docker compose down -v`; rodei o script e colou os tempos reais |
+| 2 | DER | Entidades, cardinalidades (mín., máx.) e N:M | Nenhum erro identificado | Revisei o DER contra o checklist do enunciado |
+| 3 | DDL (Oracle e PostgreSQL) | Constraints nomeadas, `ON DELETE`, tipos de cada dialeto | Nenhum erro na execução: subiu nos dois bancos na primeira vez | Executei `docker compose up -d --wait` e conferi que os dois bancos ficaram *healthy* |
+| 4 | Consultas | 10 consultas (JOIN, window, agregação, anti-join, ROLLUP, divisão relacional) | Nenhum erro na execução: resultado idêntico nos dois bancos | Executei os testes (`80 passed`) |
+| 5 | Procedures e triggers | RN-01 a RN-06, erro de negócio, sem COMMIT, concorrência | Nenhum erro na execução: 9 erros de negócio, valores-limite e concorrência passaram nos dois bancos | Executei os testes e conferi os códigos `EQL-001` a `EQL-009` |
+| 6 | Índices e EXPLAIN | 3 índices e script de medição | **O script `perf.py` usava `DROP SCHEMA` e `DROP TABLE`**, o que a regra 3 do enunciado proíbe por sugestão do agente | Perguntei se o roteiro do enunciado tinha sido seguido; o agente identificou o `DROP`, removeu e passou a abortar com instrução de `docker compose down -v`; rodei o script e colei os tempos reais |
 | 7 | Aplicações Java e Python | Bind, chamada de procedure, erro tratado | **Java entregue todo em um único `Main.java`**, difícil de explicar e de manter | Notei o arquivo único e pedi a separação; o agente dividiu em 5 classes (`Conexao`, `LocacaoDao` e uma subclasse por banco, `Main`) |
 | 8 | README | Documentar os 7 blocos e a seção de IA | **Omitiu a normalização justificada** (aulas 16 e 17 do roteiro) | Comparei o trabalho com o roteiro do enunciado; o agente acrescentou a seção "Normalização (justificada)" |
 | 9 | Aplicação Python | Mesmo fluxo da aplicação Java (bind, procedure, erro tratado, rollback) | **A mensagem de erro do Oracle saía com o prefixo duplicado** (`ORA-20003: ORA-20003: EQL-003…`), visto na execução | Executei o app e vi a saída; o agente corrigiu o `print` para não repetir o prefixo |
 | 10 | Docker Compose (extras opcionais) | Colocar Oracle e Java atrás de um perfil do compose | **Não avisou que o `down -v` deixaria de remover o container do Oracle.** Um Oracle antigo continuou rodando com dados criados 6 dias antes e 4 testes que dependem de data falharam (76 passed, 4 failed) | Executei o extra e li as falhas; o agente diagnosticou a causa (a diferença de 6 dias batia com a data do container antigo) e passou a documentar `docker compose --profile oracle down -v` e o aviso sobre datas relativas |
-
-> Regra do registro: **pelo menos 2 linhas** precisam trazer um **erro real** que apareceu ao executar e foi corrigido (a coluna "o que o agente errou"). Anotar na hora, com a mensagem de erro copiada.
 
 **Reflexão:** A IA mais ajudou nas partes em que eu tinha dúvida ou não sabia por onde seguir. Com ela, passei a lembrar como se executa cada teste e aprendi até a criar o repositório e os commits pelo terminal. Ela errou em alguns pontos, que estão no registro acima (o `DROP` no script de performance, o Java em um arquivo só, a normalização que faltou, o prefixo duplicado do erro do Oracle no Python e o aviso que faltou sobre o `down -v` do Oracle), mas nada difícil de resolver depois de executar e ler a mensagem de erro. O que eu conferi por conta própria foi a execução dos testes, para ver se estava tudo em ordem, e a quebra proposital de uma regra (a mutação), em que o teste falhou como esperado. Mesmo com a ajuda da IA, foi importante executar e testar cada etapa para encontrar esses erros.
